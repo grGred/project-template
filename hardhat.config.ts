@@ -7,6 +7,8 @@ import 'hardhat-contract-sizer';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import '@openzeppelin/hardhat-upgrades';
+import 'hardhat-change-network';
+
 
 import { SolcUserConfig } from 'hardhat/types';
 

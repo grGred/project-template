@@ -1,4 +1,4 @@
-const hre = require("hardhat");
+import hre, { ethers, network, upgrades } from 'hardhat';
 
 async function main() {
   const factory = await hre.ethers.getContractFactory("");
@@ -6,6 +6,16 @@ async function main() {
   const deploy = await factory.deploy(
       '',
   );
+
+  // or
+  //   const deploy = await upgrades.deployProxy(
+  //     factory,
+  //     [],
+  //     {
+  //         initialize: 'initialize',
+  //         timeout: 0 // wait infinietly
+  //     }
+  // );
 
   await deploy.deployed();
 
@@ -22,8 +32,9 @@ async function main() {
 }
 
 main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+    .then(() => {
+        console.log('Finished');
+    })
+    .catch(err => {
+        console.log('Error = ', err);
+    });
