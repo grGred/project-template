@@ -9,6 +9,8 @@ import 'solidity-coverage';
 import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-change-network';
 
+import { task } from 'hardhat/config';
+import 'os';
 
 import { SolcUserConfig } from 'hardhat/types';
 
@@ -19,7 +21,7 @@ const DEFAULT_PRIVATE_KEY =
 const KAVA = process.env.KAVA_API_KEY;
 
 const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
-    version: '0.8.16',
+    version: '0.8.17',
     settings: {
         optimizer: {
             enabled: true,
@@ -32,14 +34,111 @@ const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
     }
 };
 
+const fs = require('fs');
+const path = require('path');
+
+task('report', 'Creates an audit report', async dir => {
+    let solidityFiles = [];
+
+    function findFilesInDir(dir) {
+        var results = [];
+
+        if (!fs.existsSync(dir)) {
+            console.log('no dir ', dir);
+            return;
+        }
+
+        var files = fs.readdirSync(dir);
+        for (var i = 0; i < files.length; i++) {
+            var filename = path.join(dir, files[i]);
+            var stat = fs.lstatSync(filename);
+            if (stat.isDirectory()) {
+                results = results.concat(findFilesInDir(filename, '.sol')); // recurse
+            } else if (filename.indexOf('.sol') >= 0) {
+                results.push(filename); // store the file path
+            }
+        }
+        return results;
+    }
+
+    if (Object.keys(dir).length === 0) {
+        // if folder is not set check 'contracts' folder by default
+        console.log('Searching for .sol files in directory: ', __dirname + '\\contracts\\' + '\n');
+        solidityFiles = findFilesInDir('./contracts/');
+        console.log(solidityFiles?.length + ' files in scope: ');
+        solidityFiles.forEach(file => {
+            console.log(file);
+        });
+    } else {
+        console.log('Searching for .sol files in directory: ', __dirname + dir + '\n'); // TODO fix folder bug with args
+        solidityFiles = findFilesInDir(dir);
+        console.log(solidityFiles?.length + ' files in scope: ');
+        solidityFiles.forEach(file => {
+            console.log(file);
+        });
+    }
+
+    console.log('\n');
+
+    let auditLines = [];
+    solidityFiles.forEach(file => {
+        let srcCode = fs.readFileSync(file, 'utf8');
+        let resultOfFile = [];
+        if (srcCode.includes('@audit')) {
+            console.log('found in file ', file);
+            let lines = srcCode.toString().split('\n'); // TODO fix when 2 audits tags in the same line
+            let i = 0;
+            lines.forEach(line => {
+                i++; // TODO refactor
+                if (line && line.search('@audit') >= 0) {
+                    let pushData = [];
+                    pushData.push(file);
+                    pushData.push(i);
+                    pushData.push(line);
+                    resultOfFile.push(pushData);
+                }
+            });
+            auditLines.push(resultOfFile);
+        } else {
+            console.log('No audit tag found in ' + file);
+        }
+    });
+
+    /// Delete everything in the file, or create it
+    fs.writeFileSync(__dirname + '/report.md', '');
+
+    auditLines.forEach(finding => {
+        finding.forEach(str => {
+            /// Write a title
+            fs.writeFileSync(__dirname + '/report.md', '[NEW] ####', { flag: 'a' });
+            /// Write the title of the issue
+            fs.writeFileSync(
+                __dirname + '/report.md',
+                str[2].substring(str[2].indexOf('@audit'), str[2].indexOf('\r')),
+                { flag: 'a' }
+            );
+            /// Write contract name to title
+            fs.writeFileSync(__dirname + '/report.md', ' in ' + str[0] + '\n', { flag: 'a' });
+            /// Write description title
+            fs.writeFileSync(__dirname + '/report.md', '### Description \n', { flag: 'a' });
+            /// Write description text // TODO add github link to params
+            fs.writeFileSync(
+                __dirname + '/report.md',
+                'In [' + str[0] + '](' + str[0] + '#L' + str[1] + ')' + '  \n\n',
+                { flag: 'a' }
+            );
+        });
+    });
+});
+
 module.exports = {
     networks: {
         hardhat: {
-            chainId: 137,
-            forking: {
-                url: `https://polygon-rpc.com`,
-                blockNumber: 34298636
-            },
+            // chainId: 137,
+            // forking: {
+            //     url: `https://polygon-rpc.com`,
+            //     blockNumber: 34298636
+            // },
             allowUnlimitedContractSize: true,
             loggingEnabled: false,
             accounts: {
@@ -297,9 +396,9 @@ module.exports = {
             // moonbeam
             moonbeam: process.env.MOONBEAM_API_KEY,
             // moonriver
-            moonriver: process.env.MOONRIVER_API_KEY,
+            moonriver: process.env.MOONRIVER_API_KEY
         },
-        // apiKey: 
+        // apiKey:
         // `${KAVA}`,
         customChains: [
             {
@@ -343,12 +442,12 @@ module.exports = {
                 }
             },
             {
-              network: "moonbeam",
-              chainId: 1313161554,
-              urls: {
-                apiURL: "https://api.aurorascan.dev/api",
-                browserURL: "https://moonbeam.moonscan.io/"
-              }
+                network: 'moonbeam',
+                chainId: 1313161554,
+                urls: {
+                    apiURL: 'https://api.aurorascan.dev/api',
+                    browserURL: 'https://moonbeam.moonscan.io/'
+                }
             },
             {
                 network: 'boba',

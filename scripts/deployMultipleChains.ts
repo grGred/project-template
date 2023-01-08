@@ -31,14 +31,10 @@ async function main() {
             const factory = await hre.ethers.getContractFactory('RubicWhitelist');
 
             console.log(`start deploy on ${clc.blue(blockchain)}`);
-            const deploy = await upgrades.deployProxy(
-                factory,
-                [],
-                {
-                    initialize: 'initialize',
-                    timeout: 0 // wait infinietly
-                }
-            );
+            const deploy = await upgrades.deployProxy(factory, [], {
+                initialize: 'initialize',
+                timeout: 0 // wait infinietly
+            });
 
             console.log(`waiting on ${clc.blue(blockchain)}`);
             await deploy.deployed();
