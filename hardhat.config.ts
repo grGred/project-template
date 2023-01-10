@@ -10,7 +10,6 @@ import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-change-network';
 
 import { task } from 'hardhat/config';
-import 'os';
 
 import { SolcUserConfig } from 'hardhat/types';
 
@@ -37,7 +36,10 @@ const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
 const fs = require('fs');
 const path = require('path');
 
-task('report', 'Creates an audit report', async dir => {
+task('report', 'Creates an audit report')
+  .addOptionalParam("dir", "Set custom folder. Use: --dir './src/'")
+  .addOptionalParam("repository", "Set github repository for links. Use: --repository 'https://github.com/grGred/project-template/tree/main/'")
+  .setAction(async (taskArgs) => {
     let solidityFiles = [];
 
     function findFilesInDir(dir) {
@@ -61,7 +63,7 @@ task('report', 'Creates an audit report', async dir => {
         return results;
     }
 
-    if (Object.keys(dir).length === 0) {
+    if (taskArgs.dir === undefined) {
         // if folder is not set check 'contracts' folder by default
         console.log('Searching for .sol files in directory: ', __dirname + '\\contracts\\' + '\n');
         solidityFiles = findFilesInDir('./contracts/');
@@ -70,8 +72,8 @@ task('report', 'Creates an audit report', async dir => {
             console.log(file);
         });
     } else {
-        console.log('Searching for .sol files in directory: ', __dirname + dir + '\n'); // TODO fix folder bug with args
-        solidityFiles = findFilesInDir(dir);
+        console.log('Searching for .sol files in directory: ', __dirname + taskArgs.dir + '\n');
+        solidityFiles = findFilesInDir(taskArgs.dir);
         console.log(solidityFiles?.length + ' files in scope: ');
         solidityFiles.forEach(file => {
             console.log(file);
@@ -110,7 +112,7 @@ task('report', 'Creates an audit report', async dir => {
     auditLines.forEach(finding => {
         finding.forEach(str => {
             /// Write a title
-            fs.writeFileSync(__dirname + '/report.md', '[NEW] ####', { flag: 'a' });
+            fs.writeFileSync(__dirname + '/report.md', '#### [NEW] ', { flag: 'a' });
             /// Write the title of the issue
             fs.writeFileSync(
                 __dirname + '/report.md',
@@ -120,15 +122,24 @@ task('report', 'Creates an audit report', async dir => {
             /// Write contract name to title
             fs.writeFileSync(__dirname + '/report.md', ' in ' + str[0] + '\n', { flag: 'a' });
             /// Write description title
-            fs.writeFileSync(__dirname + '/report.md', '### Description \n', { flag: 'a' });
-            /// Write description text // TODO add github link to params
-            fs.writeFileSync(
-                __dirname + '/report.md',
-                'In [' + str[0] + '](' + str[0] + '#L' + str[1] + ')' + '  \n\n',
-                { flag: 'a' }
-            );
+            fs.writeFileSync(__dirname + '/report.md', '\n### Description \n', { flag: 'a' });
+            /// Write description text
+            if (taskArgs.repository === undefined) {
+                fs.writeFileSync(
+                    __dirname + '/report.md',
+                    'In [' + str[0] + '](' + str[0] + '#L' + str[1] + ')' + '  \n\n\n',
+                    { flag: 'a' }
+                );
+            } else {
+                fs.writeFileSync(
+                    __dirname + '/report.md',
+                    'In [' + str[0] + '](' + taskArgs.repository + str[0].replaceAll('\\', '/') + '#L' + str[1] + ')' + '  \n\n\n',
+                    { flag: 'a' }
+                );
+            }
         });
     });
+    console.log('Report created at ' + __dirname + '\\report.md');
 });
 
 module.exports = {
