@@ -9,6 +9,9 @@ import 'solidity-coverage';
 import '@openzeppelin/hardhat-upgrades';
 import 'hardhat-change-network';
 
+// task dependencies
+const fs = require('fs');
+const path = require('path');
 import { task } from 'hardhat/config';
 
 import { SolcUserConfig } from 'hardhat/types';
@@ -32,9 +35,6 @@ const DEFAULT_COMPILER_SETTINGS: SolcUserConfig = {
         // evmVersion: 'istanbul'
     }
 };
-
-const fs = require('fs');
-const path = require('path');
 
 task('report', 'Creates an audit report')
   .addOptionalParam("dir", "Set custom folder. Use: --dir './src/'")
@@ -122,7 +122,7 @@ task('report', 'Creates an audit report')
             /// Write contract name to title
             fs.writeFileSync(__dirname + '/report.md', ' in ' + str[0] + '\n', { flag: 'a' });
             /// Write description title
-            fs.writeFileSync(__dirname + '/report.md', '\n### Description \n', { flag: 'a' });
+            fs.writeFileSync(__dirname + '/report.md', '\n##### Description \n', { flag: 'a' });
             /// Write description text
             if (taskArgs.repository === undefined) {
                 fs.writeFileSync(
